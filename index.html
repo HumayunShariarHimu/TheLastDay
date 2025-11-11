@@ -1,0 +1,349 @@
+<!doctype html>
+
+<html lang="bn">  
+<head>  
+  <meta charset="utf-8" />  
+  <meta name="viewport" content="width=device-width,initial-scale=1" />  
+  <title>The Last Day — Apocalyptic Viewer</title>  
+  <meta name="description" content="The Last Day - বিজ্ঞান ও ধর্ম অনুযায়ী পৃথিবীর শেষ: অ্যাপোক্যালিপটিক ভিজ্যুয়াল" />  
+  <style>  
+    @font-face{font-family:'NotoBeng';src:local('Noto Sans Bengali'), local('Noto Sans');}  
+    :root{  
+      --bg:#07060a; --card:#0f1115; --accent:#e03b3b; --muted:#9aa0a6; --glass: rgba(255,255,255,0.03);  
+    }  
+    *{box-sizing:border-box}  
+    html,body{height:100%;margin:0;background:radial-gradient(ellipse at 20% 10%, rgba(224,59,59,0.06), transparent 8%), radial-gradient(ellipse at 90% 80%, rgba(0,0,0,0.6), transparent 20%), var(--bg);color:#e9eef6;font-family:NotoBeng, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}/* canvas background for particles */  
+#bgCanvas{position:fixed;inset:0;z-index:0;pointer-events:none}  header{
+position:relative;z-index:2;padding:28px 20px;text-align:center;backdrop-filter: blur(6px);background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-bottom:1px solid rgba(255,255,255,0.03)
+}
+.title{
+font-size:1.7rem;letter-spacing:.6px;color:white;font-weight:700;text-transform:none;margin:0;display:inline-block;position:relative
+}
+.glitch{position:relative}
+.glitch::before, .glitch::after{content:attr(data-text);position:absolute;left:0;top:0;mix-blend-mode:screen;opacity:.8}
+.glitch::before{transform:translateX(-2px);color:var(--accent);clip-path:polygon(0 0,100% 0,100% 33%,0 33%);animation:glitch-1 3s infinite}
+.glitch::after{transform:translateX(2px);color:#6be6ff;clip-path:polygon(0 66%,100% 66%,100%100%,0 100%);animation:glitch-2 2.5s infinite}
+@keyframes glitch-1{0%{transform:translateX(-2px) translateY(0)}20%{transform:translateX(-6px) translateY(-2px)}40%{transform:translateX(-2px) translateY(1px)}60%{transform:translateX(-8px) translateY(0)}100%{transform:translateX(-2px) translateY(0)}}
+@keyframes glitch-2{0%{transform:translateX(2px)}25%{transform:translateX(8px) translateY(-1px)}55%{transform:translateX(2px) translateY(2px)}100%{transform:translateX(2px)}}
+
+.controls{margin-top:10px;display:flex;gap:10px;justify-content:center;align-items:center}
+.btn{background:var(--card);border:1px solid rgba(255,255,255,0.04);color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+
+main{position:relative;z-index:2;max-width:1100px;margin:26px auto;padding:20px}
+.layout{display:grid;grid-template-columns: 1fr 380px;gap:22px}
+@media(max-width:980px){.layout{grid-template-columns:1fr}}
+
+/* left column timeline */
+.timeline{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+.event{padding:16px;margin-bottom:14px;border-radius:10px;background:linear-gradient(180deg, rgba(0,0,0,0.25), rgba(255,255,255,0.02));box-shadow:0 8px 24px rgba(0,0,0,0.4);position:relative;overflow:hidden}
+.event .tag{position:absolute;right:14px;top:14px;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;font-size:.8rem;color:var(--muted)}
+.event h4{margin:0 0 6px 0;color:var(--accent)}
+.event p{margin:0;color:#c8d0da;font-size:.95rem;line-height:1.45}
+.pulse{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(224,59,59,0.12);border:1px solid rgba(224,59,59,0.18);color:var(--accent);font-weight:700}
+
+/* right column details */
+.panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);height:fit-content}
+.panel h3{margin-top:0;color:var(--accent)}
+.accordion{width:100%;text-align:left;padding:12px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:#e7eef8;cursor:pointer;margin-top:10px}
+.accordion.active{background:linear-gradient(90deg, rgba(224,59,59,0.08), rgba(0,0,0,0.18));box-shadow:inset 0 0 30px rgba(224,59,59,0.02)}
+.content{display:none;padding:10px 12px;margin-top:6px;background:rgba(0,0,0,0.25);border-radius:6px}
+
+footer{margin:40px auto 80px; text-align:center;color:var(--muted);font-size:.9rem}
+
+/* smoky overlay */\
+.smoke{position:fixed;inset:0;z-index:1;pointer-events:none;background-image: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.02), transparent 10%), radial-gradient(circle at 80% 70%, rgba(0,0,0,0.35), transparent 30%)}
+
+/* small visual effects */
+.ember{position:absolute;right:-40px;bottom:-30px;width:120px;height:120px;border-radius:50%;filter:blur(40px);opacity:.08;background:radial-gradient(circle at 30% 30%, rgba(224,59,59,0.8), transparent 30%)}
+
+/* download toast */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:#111;padding:12px 18px;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,0.6);display:none;z-index:999}
+
+/* small helpers */
+code{background:rgba(255,255,255,0.02);padding:3px 6px;border-radius:6px;color:#fff}
+
+  </style>  
+</head>  
+<body>  
+  <canvas id="bgCanvas"></canvas>  
+  <div class="smoke"></div>  
+  <header>  
+    <div class="title glitch" data-text="The Last Day">The Last Day</div>  
+    <div class="controls"> 
+      <button id="intenseBtn" class="btn ghost"></button>
+      <button id="toggleSound" class="btn ghost"></button>
+      <button id="downloadBtn" class="btn"></button>   
+    </div>  
+  </header>   
+ <main>  
+    <div class="layout">  
+      <section class="timeline" aria-label="Timeline">  
+        <article class="event" data-type="science">  
+  <div class="tag">বিজ্ঞান</div>  
+  <h4>সূর্যের বিবর্তন — লাল দৈত্য</h4>  
+  <p>  
+    সূর্য এখনও মূল ধারার (Main Sequence) তারকা, কিন্তু প্রায় ৫০০ কোটি বছরের মধ্যে এটি প্রসারিত হয়ে লাল দৈত্যে পরিণত হবে। এই সময়ে সূর্যের তাপমাত্রা বৃদ্ধি পাবে,   
+    পৃথিবীর জলায়ন ব্যবস্থায় তীব্র পরিবর্তন হবে এবং সমুদ্র ও নদী শুকিয়ে যাবে। পৃথিবীর আবহাওয়া তীব্রভাবে অস্থিতিশীল হবে এবং গ্রহে জীবনের অস্তিত্ব প্রায় অসম্ভব হয়ে যাবে।   
+    <br>  
+    <b>উপাত্ত:</b> সূর্যের ভর ≈ 1.989 × 10³⁰ কেজি, রেড জায়ান্ট পর্যায়ে সূর্যের ব্যাস ≈ 1 AU (পৃথিবীর কক্ষপথের সমান), তাপমাত্রা 3,000–5,000K।  
+  </p>  
+  <div class="ember"></div>  
+  <span class="pulse">দূরবর্তী ভবিষ্যত</span>  
+</article>  <article class="event" data-type="science">  
+  <div class="tag">বিজ্ঞান</div>  
+  <h4>ধুমকেতু / অ্যাস্টেরয়েড আঘাত</h4>  
+  <p>  
+    বৃহৎ ধুমকেতু বা অ্যাস্টেরয়েড (ডায়ামিটার > 10 কিমি) পৃথিবীতে আঘাত করলে তাপীয় শক্তি ১০⁹ মেগাটন TNT এর সমান হতে পারে।   
+    এর ফলে বিশাল বিস্ফোরণ, বিস্তৃত আগুন, ও ধুলো মেঘের কারণে সূর্যের আলো ব্লক হয়ে বিশ্বব্যাপী অন্ধকার এবং তাপমাত্রা হ্রাস পাবে।   
+    <br>  
+    <b>উপাত্ত:</b> 66 মিলিয়ন বছর আগে Chicxulub অ্যাস্টেরয়েড প্রায় 10–15 কিমি ব্যাসার্ধের ছিল, যা ডাইনোসরের বিলুপ্তির কারণ হয়েছিল।  
+    <br>  
+    <b>সম্ভাব্য প্রভাব:</b> ধ্বংসের পরিমাণ = প্রায় 75% প্রজাতি বিলুপ্তি, দীর্ঘমেয়াদে খাদ্য সংকট ও পরিবেশীয় অস্থিতিশীলতা।  
+  </p>  
+  <span class="pulse">উচিৎ প্রস্তুতি</span>  
+</article>  <article class="event" data-type="science">  
+  <div class="tag">মানবসৃষ্ট</div>  
+  <h4>পরমাণু যুদ্ধ</h4>  
+  <p>  
+    বৃহৎ পরিসরে পারমাণবিক অস্ত্র ব্যবহার বিশ্বব্যাপী 'নিউক্লিয়ার শীত' সৃষ্টি করতে পারে। একবারে কয়েকশ’ বোমা ফাটালে   
+    বায়ুমণ্ডলে ধুলো, পলিউশন, ও বায়ু-বর্জ্য ছড়িয়ে পড়বে, যা 5–10 বছরের জন্য সূর্যের আলো ব্লক করবে এবং   
+    কৃষি ধ্বংস করে খাদ্য সংকট তৈরি করবে।   
+    <br>  
+    <b>উপাত্ত:</b> 1 মেগাটন বোমা ≈ 1 মিলিয়ন টন TNT, Tsar Bomba 50 মেগাটন। 2000+ অস্ত্র প্রয়োগে নিউক্লিয়ার শীতের তাপমাত্রা -20°C পর্যন্ত নেমে আসতে পারে।  
+    <br>  
+    <b>মানব ক্ষতি:</b> তাত্ক্ষণিক মৃত্যু ≈ কোটি কোটি মানুষ, দীর্ঘমেয়াদী রোগ ও পরিবেশ দূষণ।  
+  </p>  
+  <span class="pulse">মানব-উৎপন্ন</span>  
+</article>  <article class="event" data-type="islam">
+
+  <div class="tag">ইসলাম</div>  
+  <h4>দাজ্জাল ও যিশুর আগমন</h4>  
+  <p>  
+    দাজ্জাল (মহা প্রতারক) পৃথিবীতে বিভ্রান্তি, অসৎ শক্তি ও নৈতিক অবক্ষয় ছড়াবে। সে মানুষের বিশ্বাস পরীক্ষা করবে, সমাজে অস্থিরতা সৃষ্টি করবে এবং বিশ্বে অস্থিতিশীল পরিস্থিতি তৈরি করবে।   
+    তার প্রভাবে অনেকেই ঈমান হারাবে, অন্যরা বিভ্রান্ত হয়ে অশুভ পথে যাবে।   
+    <br>  
+    <b>প্রভাব:</b> সামাজিক ন্যায়-অন্যায়, নৈতিক অবক্ষয়, গরীব ও দারিদ্র্য বৃদ্ধি। মানবতার মধ্যে ভয় ও দ্বন্দ্ব ছড়াবে।    
+    <br>  
+    <b>ঐশ্বরিক হুকুম:</b> আল্লাহর অনুমতিতে যিশু (ইসা) pbuh পৃথিবীতে ফেরত আসবেন। তিনি দাজ্জালকে পরাজিত করবেন, মসিহি ন্যায় প্রতিষ্ঠা করবেন এবং শান্তি ও ঈমান পুনঃপ্রতিষ্ঠা হবে।    
+    <br>  
+    <b>উপাত্ত ও কল্পনা:</b>  
+    <ul>  
+      <li>দাজ্জালের শারীরিক ও মানসিক ক্ষমতা অতিমানবীয় হিসেবে বর্ণিত, যা মানুষকে প্রলোভন দেখাতে সক্ষম।</li>  
+      <li>প্রায় ৭ বছর পৃথিবীতে দাজ্জালের দাপট থাকবে।</li>  
+      <li>যিশুর আগমনের পর ৪০ দিনের মধ্যে দাজ্জাল ধ্বংস হবে।</li>  
+      <li>মানব জাতি নতুন ন্যায় ও শান্তির যুগে প্রবেশ করবে।</li>  
+    </ul>  
+    <b>চিহ্ন:</b> সূর্য পশ্চিম থেকে উদয় হওয়া, অস্বাভাবিক মহাজাগতিক ও সামাজিক ঘটনা।   
+    <br>  
+    <i>প্রভাব পড়বে মানুষের আত্মার উপর, অন্তরে ভয় ও মহাজাগতিক ঐশ্বরিক সত্যের উপলব্ধি তৈরি হবে।</i>  
+  </p>  
+  <span class="pulse">আধ্যাত্মিক চিহ্ন</span>  
+</article>  <article class="event" data-type="christian">
+
+  <div class="tag">খ্রিস্টধর্ম</div>  
+  <h4>Antichrist & Tribulation</h4>  
+  <p>  
+    Antichrist (অ্যান্টিক্রাইস্ট) পৃথিবীতে বিশৃঙ্খলা, বিভ্রান্তি ও শয়তানি শক্তি বৃদ্ধি করবে। তার প্রভাবে যুদ্ধ, দুর্ভিক্ষ, মহামারি এবং দুঃখের প্রবলতার সময়কাল শুরু হবে, যা পুরো বিশ্বকে কাঁপিয়ে দেবে।   
+    <br>  
+    <b>সম্ভাব্য প্রভাব:</b>  
+    <ul>  
+      <li>সামরিক সংঘাত ও বিশ্বযুদ্ধের উত্থান।</li>  
+      <li>মানব ইতিহাসে রেকর্ড স্তরের দুর্ভিক্ষ এবং খাদ্য সংকট।</li>  
+      <li>মহামারির বিস্তার, চিকিৎসা ও জীবনধারায় বিশাল প্রভাব।</li>  
+      <li>অনৈতিক ও অসৎ কাজের বৃদ্ধি, ধর্ম ও নৈতিকতার অবক্ষয়।</li>  
+    </ul>  
+    <b>Tribulation (কষ্টের সময়):</b> প্রায় ৭ বছর ধরে চলবে, যেখানে মানবতা বড় ধাক্কা পাবে। মানুষের বিশ্বাস পরীক্ষা হবে এবং সঠিক ও ভুলের মধ্যে প্রভূত বিভাজন হবে।    
+    <br>  
+    <b>Judgment Day (বিচার দিবস):</b> শেষে ঈশ্বরের ন্যায়পালনের মাধ্যমে সমস্ত দুষ্ট শক্তি ধ্বংস হবে। শান্তি, ন্যায় এবং পুনরুজ্জীবনের সূচনা হবে।    
+    <br>  
+    <i>উপাত্ত ও কল্পনা:</i> যুদ্ধে ব্যবহৃত অস্ত্র, মহামারি এবং প্রাকৃতিক বিপর্যয় মানবতার ওপর বিশাল চাপ সৃষ্টি করবে। Antichrist-এর ক্ষমতা মানুষের প্রলোভন এবং বিশ্বাস পরীক্ষা করার জন্য অতিমানবীয়ভাবে বর্ণিত।    
+  </p>  
+  <span class="pulse">ধর্মীয় চিহ্ন</span>  
+</article>  <article class="event" data-type="hindu">
+
+  <div class="tag">হিন্দু</div>  
+  <h4>যুগান্ত ও Kalki অবতার</h4>  
+  <p>  
+    হিন্দু পুরাণ অনুযায়ী, মানব ইতিহাস চক্রাকার: সত্য যুগ (Satya Yuga), ত্রেতা যুগ (Treta Yuga), দ্বাপর যুগ (Dvapara Yuga), এবং কালিয়ুগ (Kali Yuga)।   
+    কালিয়ুগে নৈতিক অবক্ষয় বৃদ্ধি পাবে, অহংকার, ধনলোভ, অসৎ আচরণ এবং ধর্মবিরোধী কার্যকলাপ প্রচলিত হবে।    
+    <br>  
+    <b>সম্ভাব্য প্রভাব:</b>  
+    <ul>  
+      <li>নৈতিকতা ও ধর্মীয় আদর্শের অবনতি।</li>  
+      <li>সামাজিক বিশৃঙ্খলা, যুদ্ধ ও দুর্ভিক্ষের উত্থান।</li>  
+      <li>প্রাকৃতিক বিপর্যয় এবং মানবিক সংকট বৃদ্ধি।</li>  
+      <li>মানুষের অন্তর্দৃষ্টি ও দিকনির্দেশনা হ্রাস।</li>  
+    </ul>  
+    <b>Kalki অবতার:</b> এই যুগের শেষে, ভগবান বিষ্ণুর দশম অবতার Kalki আসবেন। তিনি <b>অসৎ শক্তি ধ্বংস</b> করবেন এবং ন্যায় ও ধর্ম পুনঃপ্রতিষ্ঠা করবেন। পৃথিবী পুনরায় নির্মল, শান্তিপূর্ণ এবং নৈতিক আদর্শে পূর্ণ হবে।    
+    <br>  
+    <b>উপাত্ত ও সময়কাল:</b>  
+    <ul>  
+      <li>কালিয়ুগের দৈর্ঘ্য ≈ 432,000 মানববছর।</li>  
+      <li>Kali Yuga এর শেষের দিকে, মানব জাতির নৈতিক অবক্ষয় সর্বোচ্চ পর্যায়ে পৌঁছাবে।</li>  
+      <li>Kalki অবতার আসার পর, Satya Yuga (সত্য যুগ) পুনরায় শুরু হবে।</li>  
+    </ul>  
+    <i>চিত্রনাট্য কল্পনা:</i> পৃথিবীতে যুদ্ধ, দারিদ্র্য, দুর্যোগ ও বিভ্রান্তির পর Kalki অবতার দন্ডব্যবস্থা প্রতিষ্ঠা করে মানবজাতিকে পুনরুজ্জীবিত করবেন। অন্তরে ন্যায় ও শান্তির বীজ বোনা হবে।    
+  </p>  
+  <span class="pulse">পুনর্জন্ম</span>  
+</article>    </section>    <aside class="panel" aria-label="Details">  
+    <h3>বিস্তারিত ও ব্যাখ্যা</h3>  
+<p>ডান পাশের সেকশনে প্রতিটি চিহ্ন/ইভেন্টের আরও গভীর ব্যাখ্যা দেখতে একটি ক্যাটাগরি বেছে নাও — নিচে অ্যাকর্ডিয়ন আছে।</p>  
+
+<aside>
+  <button class="accordion" data-target="science">বিজ্ঞানিক ঘটনাবলি</button>  
+  <div class="content" id="science">  
+    <ul>  
+      <li><b>সূর্যের বিবর্তন:</b> সূর্যের স্টেল্যার বিবর্তন, রেড জায়ান্ট পর্যায়।</li>  
+      <li><b>অ্যাস্টেরয়েড:</b> ক্রিটিকাল আঘাতে ধুলো সঞ্চিত হয়ে দীর্ঘকাল অন্ধকার সৃষ্টি করতে পারে।</li>  
+      <li><b>জলবায়ু পরিবর্তন:</b> মানবকৃত ক্রিয়ায় তীব্র প্রভাব এবং ঘনীভূত জলবায়ু হুমকি।</li>  
+    </ul>  
+  </div>  
+
+  <button class="accordion" data-target="islam">ইসলাম: কেয়ামত ও চিহ্ন</button>  
+  <div class="content" id="islam">  
+    <ul>  
+      <li><b>বড় চিহ্ন:</b> দাজ্জাল, সূর্য পশ্চিম থেকে উঠা, যিশুর আগমন ইত্যাদি।</li>  
+      <li><b>ছোট চিহ্ন:</b> নৈতিক অবক্ষয়, সামাজিক সংঘাত, দুর্নীতি বৃদ্ধি।</li>  
+    </ul>  
+  </div>  
+
+  <button class="accordion" data-target="christian">খ্রিস্টধর্ম: শেষ দিনের চিহ্ন</button>  
+  <div class="content" id="christian">  
+    <ul>  
+      <li>Antichrist এর উত্থান, Tribulation, যুদ্ধ ও প্রলয়সংকেত।</li>  
+    </ul>  
+  </div>  
+
+  <button class="accordion" data-target="hindu">হিন্দু: যুগ ও পুনর্জন্ম</button>  
+  <div class="content" id="hindu">  
+    <ul>  
+      <li>যুগচক্র অনুসারে শেষের নৈতিক অবক্ষয় ও Kalki অবতারের উচ্চারণ।</li>  
+    </ul>  
+  </div>
+</aside>
+</div>    
+</main>   
+ 
+ <!-- Clickable Creepy Red Clock Icon -->
+<a href="zero_clock.html" id="creepyClockIcon">⏰</a>
+
+<style>
+  #creepyClockIcon {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #8B0000; /* Dark red */
+    color: #ff4d4d; /* Bright red glow */
+    font-size: 1.8rem;
+    padding: 14px;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #ff0000, 0 0 25px rgba(255,0,0,0.5), 0 0 40px rgba(255,50,50,0.6);
+    cursor: pointer;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 0 5px #ff0000, 0 0 10px #ff3300, 0 0 20px #ff6666;
+    animation: flicker 1.2s infinite;
+    text-decoration: none; /* Remove underline */
+  }
+
+  @keyframes flicker {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+  }
+
+  #creepyClockIcon:hover {
+    transform: scale(1.2);
+    transition: transform 0.2s ease;
+  }
+</style>
+ <footer><code>The Last Day © </code> Humayun Shariar Himu </footer>  
+ 
+ <script>  
+    // Simple particle system for background canvas  
+    const canvas = document.getElementById('bgCanvas');  
+    const ctx = canvas.getContext('2d');  
+    let w = canvas.width = innerWidth;  
+    let h = canvas.height = innerHeight;  
+    let particles = [];  
+    let intensity = 100;  function rand(min,max){return Math.random()*(max-min)+min}  
+
+function createParticles(n){  
+  particles = [];  
+  for(let i=0;i<n;i++){  
+    particles.push({x:rand(0,w), y:rand(0,h), r:rand(0.6,2.4), vx:rand(-0.3,0.3), vy:rand(-0.1,0.6), life:rand(80,320)})  
+  }  
+}  
+createParticles(intensity);  
+
+function resize(){w=canvas.width=innerWidth;h=canvas.height=innerHeight;createParticles(intensity)}  
+addEventListener('resize',resize);  
+
+function draw(){  
+  ctx.clearRect(0,0,w,h);  
+  // subtle background glow  
+  const g = ctx.createLinearGradient(0,0,w,h);  
+  g.addColorStop(0,'rgba(224,59,59,0.02)');  
+  g.addColorStop(1,'rgba(0,0,0,0.2)');  
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);  
+
+  particles.forEach(p=>{  
+    p.x += p.vx; p.y -= p.vy; p.life--;  
+    if(p.x< -20) p.x = w+20; if(p.x> w+20) p.x=-20; if(p.y< -20) p.y=h+20; if(p.y>h+20) p.y=-20;  
+    if(p.life<0){p.x=rand(0,w);p.y=h+10;p.life=rand(80,320)}  
+    const alpha = Math.max(0, Math.min(1, p.life/320));  
+    ctx.beginPath(); ctx.fillStyle = 'rgba(255,200,120,'+(alpha*0.05)+')'; ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();  
+  });  
+  requestAnimationFrame(draw);  
+}  
+draw();  
+
+// UI interactions  
+const intenseBtn = document.getElementById('intenseBtn');  
+const toggleSound = document.getElementById('toggleSound');  
+intenseBtn.addEventListener('click',()=>{  
+  if(intenseBtn.textContent.includes('Normal')){intensity=260;intenseBtn.textContent='Particle: Intense';createParticles(intensity)}else{intensity=100;intenseBtn.textContent='Particle: Normal';createParticles(intensity)}  
+});  
+
+// Sound placeholder (user can add audio file by editing src)  
+let audio = new Audio();  
+audio.loop = true;  
+// audio.src = 'ambient.mp3'; // uncomment & provide a file to enable  
+let soundOn = false;  
+toggleSound.addEventListener('click',()=>{  
+  if(!soundOn){  
+    if(audio.src){audio.play(); toggleSound.textContent='Ambient: On';}  
+    else{alert('কোনও অডিও ফাইল দেওয়া নেই। index.html ফাইলে audio.src = "ambient.mp3" যুক্ত করো (অথবা অন্য নাম)।');}  
+    soundOn=true;  
+  } else {  
+    audio.pause(); toggleSound.textContent='Ambient: Off'; soundOn=false;  
+  }  
+});  
+
+// Accordions  
+document.querySelectorAll('.accordion').forEach(btn=>{  
+  btn.addEventListener('click', ()=>{  
+    const target = btn.dataset.target;  
+    btn.classList.toggle('active');  
+    const el = document.getElementById(target);  
+    if(el.style.display === 'block') el.style.display = 'none'; else el.style.display = 'block';  
+  })  
+})  
+
+// Download HTML  
+const downloadBtn = document.getElementById('downloadBtn');  
+const toast = document.getElementById('toast');  
+downloadBtn.addEventListener('click', ()=>{  
+  const html = `<!doctype html>\n` + document.documentElement.outerHTML;  
+  const blob = new Blob([html], {type: 'text/html'});  
+  const url = URL.createObjectURL(blob);  
+  const a = document.createElement('a'); a.href = url; a.download = 'the-last-day.html'; document.body.appendChild(a); a.click(); a.remove();  
+  toast.style.display='block'; setTimeout(()=>toast.style.display='none',2000);  
+});
+
+</script>
+</body>
+
+</html>
